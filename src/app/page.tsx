@@ -55,6 +55,10 @@ export default function Home<NextPage>() {
       start: new Date("May 11, 2023 11:00:00"),
       end: new Date("May 11, 2023 20:00:00"),
     },
+    {
+      start: new Date("May 12, 2023 08:00:00"),
+      end: new Date("May 12, 2023 20:00:00"),
+    },
   ]
 
   return (
