@@ -76,9 +76,9 @@ export default function Home<NextPage>() {
         <div className="flex w-4/5 justify-evenly">
           {days.map((day, dayIndex) => {
             return (
-              <div className="flex flex-col w-full justify-evenly text-center bg-slate-500">
+              <div className="flex flex-col w-full justify-evenly text-center bg-slate-500" key={dayIndex}>
                 <div>{format(day, 'EEEE', { locale: ptBRLocale })}</div>
-                {hours.map((hour) => {
+                {hours.map((hour, index) => {
                   let dragging
                   const now = add(selectedWeek, { days: dayIndex, hours: hour })
                   const [isAvailable] = availableHours.filter(hour => new Date(hour.start) <= new Date(now) && new Date(hour.end) > new Date(now))
@@ -93,6 +93,7 @@ export default function Home<NextPage>() {
                   if (isAvailable) {
                     return (
                       <div
+                        key={index}
                         className={clsx(
                           "w-60 h-12 bg-slate-400 text-black text-center",
                           availableStart && 'rounded-t-lg',
@@ -100,6 +101,7 @@ export default function Home<NextPage>() {
                         )}
                       >
                         <div
+                          key={index}
                           className={clsx(
                             event && "text-left h-12 bg-sky-400 text-black w-11/12 ml-1 pl-1",
                             isEventStart && 'rounded-t-lg',
@@ -114,13 +116,13 @@ export default function Home<NextPage>() {
 
                   return (
                     <div
+                      key={index}
                       className="h-12 bg-slate-500 text-black text-center border border-black border-opacity-20"
                       onClick={() => setOpenCreateAvailableTimeModal(true)}
                       draggable
                       onDragOver={() => console.log('draggingOver')}
-                      style={{ background: dragging ? 'red' : 'blue'}}
-                    >
-                    </div>
+                      style={{ background: dragging ? 'red' : 'blue' }}
+                    />
                   )
 
                 })}
