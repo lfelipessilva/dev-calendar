@@ -10,14 +10,20 @@ import { CreateAvailableTimeModal } from "@/components/modals/CreateAvailableTim
 const stateEvent = [
   {
     id: 1,
-    start: new Date("May 8, 2023 16:00:00"),
-    end: new Date("May 8, 2023 18:00:00"),
+    start: new Date("May 8, 2023 16:30:00"),
+    end: new Date("May 8, 2023 20:00:00"),
     name: 'task tal'
   },
   {
     id: 2,
-    start: new Date("May 11, 2023 12:00:00"),
+    start: new Date("May 11, 2023 12:30:00"),
     end: new Date("May 11, 2023 18:00:00"),
+    name: 'task tal'
+  },
+  {
+    id: 3,
+    start: new Date("May 10, 2023 11:30:00"),
+    end: new Date("May 10, 2023 13:30:00"),
     name: 'task tal'
   }
 ]
@@ -70,14 +76,15 @@ export default function Home<NextPage>() {
   const handleDragEnter = (e: any, id: number) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(e);
     setDraggingEventId(id)
   };
+
   const handleDragLeave = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
     e.target.style.backgroundColor = 'red'
   };
+
   const handleDragOver = (e: any, now: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -97,6 +104,7 @@ export default function Home<NextPage>() {
   const handleDrop = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
+    setDraggingEventId({})
   };
 
   return (
@@ -111,30 +119,33 @@ export default function Home<NextPage>() {
         <div className="text-4xl">
           Semana
         </div>
-        <div className="flex w-4/5 justify-evenly">
+        <div className="grid grid-flow-col grid-cols-7 w-full justify-evenly">
           {days.map((day, dayIndex) => {
             return (
-              <div className="flex flex-col w-full justify-evenly text-center bg-slate-500" key={dayIndex}>
-                <div>{format(day, 'EEEE', { locale: ptBRLocale })}</div>
+              <div className="grid bg-slate-500" key={dayIndex}>
+                <div>{format(day, 'E', { locale: ptBRLocale })}</div>
                 {hours.map((hour, index) => {
                   const now = add(selectedWeek, { days: dayIndex, hours: hour })
-                  const [event] = events.filter(event => new Date(event.start) <= new Date(now) && new Date(event.end) > new Date(now))
+                  const [event] = events.filter(event => new Date(event.start) <= add(new Date(now), { minutes: 59 }) && sub(new Date(event.end), { minutes: 1 }) > new Date(now))
+                  const { isEventStart, isEventEnd, timeInElement } = findIfIsInEvent(event?.start, event?.end, now)
 
-                  const isEventStart = event && isEqual(new Date(event?.start), new Date(now))
-                  const isEventEnd = event && isEqual(new Date(event?.end), add(new Date(now), { hours: 1 }))
-
+                  const eventHeight = findEventHeight(isEventStart, isEventEnd, timeInElement)
                   if (event) {
                     return (
                       <div
                         key={index}
                         className={clsx(
-                          "w-60 h-12 bg-slate-400 text-black text-center",
+                          "w-[98%] h-12 bg-slate-400 text-black text-left",
+                          `h-${eventHeight}`,
                           isEventStart && 'rounded-t-lg',
-                          isEventEnd && 'rounded-b-lg'
+                          isEventEnd && 'rounded-b-lg',
+                          isEventStart && (eventHeight < 12) && `mt-${12 - eventHeight}`,
+                          isEventEnd && (eventHeight < 12) && `mb-${12 - eventHeight}`,
                         )}
                         draggable
                         onDragOver={e => handleDragOver(e, now)}
                         onDragEnter={e => handleDragEnter(e, event.id)}
+                        onDrop={e => handleDrop(e)}
                       >
                         {!!isEventStart && event?.name}
                       </div>
@@ -148,8 +159,9 @@ export default function Home<NextPage>() {
                       className="h-12 bg-slate-500 text-black text-center border border-black border-opacity-20"
                       onDragOver={e => handleDragOver(e, now)}
                       onDragLeave={e => handleDragLeave(e)}
-                      style={{ background: 'red' }}
-                    />
+                    >
+                      <p>{format(new Date(now), 'HH')}</p>
+                    </div>
                   )
 
                 })}
@@ -163,3 +175,38 @@ export default function Home<NextPage>() {
     </>
   );
 };
+
+const findEventHeight = (isStart: any, isEnd: any, inElementTime: any) => {
+  return inElementTime / 5
+}
+
+const findIfIsInEvent = (eventStart: any, eventEnd: any, now: any) => {
+  if (eventStart || eventEnd) {
+    let timeInElement
+    const diffToStart = differenceInMinutes(new Date(eventStart), new Date(now)) ?? 0
+    const diffToEnd = differenceInMinutes(new Date(eventEnd), new Date(now)) ?? 0
+    const isEventStart = format(new Date(eventStart), 'HH') === format(add(new Date(now), { minutes: 59 }), 'HH')|| (diffToStart > -60 && diffToStart > 0)
+    const isEventEnd = format(new Date(eventEnd), 'HH') === format(add(new Date(now), { minutes: 1 }), 'HH') || diffToEnd <= 60
+
+    console.log(isEventStart, diffToStart, new Date(now));
+    if (isEventEnd) {
+      timeInElement = Math.abs(diffToEnd)
+    }
+
+    if (isEventStart) {
+      timeInElement = Math.abs(diffToStart)
+    }
+
+    return {
+      isEventStart,
+      isEventEnd,
+      timeInElement
+    }
+  }
+
+  return {
+    isEventStart: false,
+    isEventEnd: false,
+    timeInElement: 0
+  }
+}
