@@ -22,8 +22,14 @@ const stateEvent = [
   },
   {
     id: 3,
-    start: new Date("May 10, 2023 11:30:00"),
+    start: new Date("May 10, 2023 11:50:00"),
     end: new Date("May 10, 2023 13:30:00"),
+    name: 'task tal'
+  },
+  {
+    id: 4,
+    start: new Date("May 13, 2023 14:00:00"),
+    end: new Date("May 13, 2023 17:15:00"),
     name: 'task tal'
   }
 ]
@@ -44,35 +50,6 @@ export default function Home<NextPage>() {
   const [openCreateAvailableTimeModal, setOpenCreateAvailableTimeModal] = useState(false)
   const [draggingEventId, setDraggingEventId] = useState<any>({})
 
-
-
-  const availableHours = [
-    {
-      start: new Date("May 8, 2023 13:00:00"),
-      end: new Date("May 8, 2023 20:00:00"),
-    },
-    {
-      start: new Date("May 9, 2023 9:00:00"),
-      end: new Date("May 9, 2023 13:00:00"),
-    },
-    {
-      start: new Date("May 10, 2023 10:00:00"),
-      end: new Date("May 10, 2023 14:00:00"),
-    },
-    {
-      start: new Date("May 10, 2023 17:00:00"),
-      end: new Date("May 10, 2023 21:00:00"),
-    },
-    {
-      start: new Date("May 11, 2023 11:00:00"),
-      end: new Date("May 11, 2023 20:00:00"),
-    },
-    {
-      start: new Date("May 12, 2023 08:00:00"),
-      end: new Date("May 12, 2023 20:00:00"),
-    },
-  ]
-
   const handleDragEnter = (e: any, id: number) => {
     e.preventDefault();
     e.stopPropagation();
@@ -82,7 +59,6 @@ export default function Home<NextPage>() {
   const handleDragLeave = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
-    e.target.style.backgroundColor = 'red'
   };
 
   const handleDragOver = (e: any, now: any) => {
@@ -126,41 +102,35 @@ export default function Home<NextPage>() {
                 <div>{format(day, 'E', { locale: ptBRLocale })}</div>
                 {hours.map((hour, index) => {
                   const now = add(selectedWeek, { days: dayIndex, hours: hour })
-                  const [event] = events.filter(event => new Date(event.start) <= add(new Date(now), { minutes: 59 }) && sub(new Date(event.end), { minutes: 1 }) > new Date(now))
-                  const { isEventStart, isEventEnd, timeInElement } = findIfIsInEvent(event?.start, event?.end, now)
 
-                  const eventHeight = findEventHeight(isEventStart, isEventEnd, timeInElement)
-                  if (event) {
-                    return (
-                      <div
-                        key={index}
-                        className={clsx(
-                          "w-[98%] h-12 bg-slate-400 text-black text-left",
-                          `h-${eventHeight}`,
-                          isEventStart && 'rounded-t-lg',
-                          isEventEnd && 'rounded-b-lg',
-                          isEventStart && (eventHeight < 12) && `mt-${12 - eventHeight}`,
-                          isEventEnd && (eventHeight < 12) && `mb-${12 - eventHeight}`,
-                        )}
-                        draggable
-                        onDragOver={e => handleDragOver(e, now)}
-                        onDragEnter={e => handleDragEnter(e, event.id)}
-                        onDrop={e => handleDrop(e)}
-                      >
-                        {!!isEventStart && event?.name}
-                      </div>
-                    )
-                  }
+                  const { isEventStart, isEventEnd, timeInElement, event } = findIfIsInEvent(now, events)
+
+                  const eventHeight = findEventHeight(timeInElement)
 
                   return (
-                    // blank hour
                     <div
                       key={index}
-                      className="h-12 bg-slate-500 text-black text-center border border-black border-opacity-20"
+                      className="flex h-12 bg-slate-500 text-black text-center border border-black border-opacity-20"
                       onDragOver={e => handleDragOver(e, now)}
                       onDragLeave={e => handleDragLeave(e)}
                     >
-                      <p>{format(new Date(now), 'HH')}</p>
+                      {!!event &&
+                        <div
+                          key={index}
+                          className={clsx(
+                            "w-[98%] bg-slate-400 text-black text-left",
+                            isEventStart && 'rounded-t-lg',
+                            isEventEnd && 'rounded-b-lg',
+                          )}
+                          style={{ height: `${eventHeight}%`, marginTop: isEventStart ? 'auto' : '', marginBottom: isEventEnd ? 'auto' : '' }}
+                          draggable
+                          onDragOver={e => handleDragOver(e, now)}
+                          onDragEnter={e => handleDragEnter(e, event.id)}
+                          onDrop={e => handleDrop(e)}
+                        >
+                          {!!isEventStart && event?.name}
+                        </div>
+                      }
                     </div>
                   )
 
@@ -176,37 +146,48 @@ export default function Home<NextPage>() {
   );
 };
 
-const findEventHeight = (isStart: any, isEnd: any, inElementTime: any) => {
-  return inElementTime / 5
+const findEventHeight = (inElementTime: any) => {
+  return inElementTime / 60 * 100
 }
 
-const findIfIsInEvent = (eventStart: any, eventEnd: any, now: any) => {
-  if (eventStart || eventEnd) {
-    let timeInElement
-    const diffToStart = differenceInMinutes(new Date(eventStart), new Date(now)) ?? 0
-    const diffToEnd = differenceInMinutes(new Date(eventEnd), new Date(now)) ?? 0
-    const isEventStart = format(new Date(eventStart), 'HH') === format(add(new Date(now), { minutes: 59 }), 'HH')|| (diffToStart > -60 && diffToStart > 0)
-    const isEventEnd = format(new Date(eventEnd), 'HH') === format(add(new Date(now), { minutes: 1 }), 'HH') || diffToEnd <= 60
+const findIfIsInEvent = (now: any, events: any) => {
+  const [event] = events.filter((event: any) => isInEventEnd(event.end, now) || isInEventStart(event.start, now) || isInEventMiddle(event.start, event.end, now))
 
-    console.log(isEventStart, diffToStart, new Date(now));
-    if (isEventEnd) {
-      timeInElement = Math.abs(diffToEnd)
-    }
-
-    if (isEventStart) {
-      timeInElement = Math.abs(diffToStart)
-    }
-
+  if (!event) {
     return {
-      isEventStart,
-      isEventEnd,
-      timeInElement
+      isEventStart: false,
+      isEventEnd: false,
+      timeInElement: 0
     }
+  }
+
+  let timeInElement = 60
+  const isEventStart = isInEventStart(event.start, now)
+  const isEventEnd = isInEventEnd(event.end, now)
+
+  if (isEventStart) {
+    timeInElement = Math.abs(differenceInMinutes(new Date(event.start), new Date(now)))
+    if (timeInElement === 0) timeInElement = 60 // cases where the event starts exactly at the start of the time
+  }
+
+  if (isEventEnd) {
+    timeInElement = Math.abs(differenceInMinutes(new Date(event.end), new Date(now)))
   }
 
   return {
-    isEventStart: false,
-    isEventEnd: false,
-    timeInElement: 0
+    isEventStart,
+    isEventEnd,
+    timeInElement,
+    event
   }
 }
+
+const isInEventStart = (startTime: any, now: any) => format(new Date(startTime), 'dd-HH') === format(new Date(now), 'dd-HH')
+// evento começa ás 14, e hora igual 14
+// event começar 14:13, e hora igual 14
+
+const isInEventEnd = (endTime: any, now: any) => format(sub(new Date(endTime), { minutes: 1 }), 'dd-HH') === format(new Date(now), 'dd-HH')
+// evento termina 15:34, e hora igual 15
+// event termina 16:00, e hora igual a 15
+
+const isInEventMiddle = (eventStart: any, eventEnd: any, now: any) => sub(new Date(eventEnd), { minutes: 1 }) > new Date(now) && new Date(eventStart) < new Date(now)
