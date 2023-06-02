@@ -5,7 +5,7 @@ export default function Home() {
         <h1 className="animate-pulse text-3xl">You got here too early! 😅</h1>
         <section className="text-center">
           <p>This app is not ready for use yet.</p>
-          <p>You can acess uor development deploy to check how it&apos;s going&nbsp;
+          <p>You can acess our development deploy to check how it&apos;s going&nbsp;
             <a
               href="https://development.dev-calendar.devluis.tech"
               className="text-indigo-500 hover:underline"
